@@ -8,3 +8,6 @@ export PUID=1000                    # User ID
 export PGID=1000                    # Group ID
 export EMAIL=your@email.here        # Emails will be sent from this email
 export PANEL_DIR=/opt/virtualizor   # Directory containing all of the panel's files
+export VIRTUALIZOR_MEM_LIMIT=4g      # Docker memory limit
+export VIRTUALIZOR_CPUS=2            # Docker CPU limit
+export AUTO_RESTART_ON_UNHEALTHY=true # Restart Virtualizor services from healthcheck on probe failure

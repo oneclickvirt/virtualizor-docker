@@ -1,4 +1,7 @@
 #!/usr/bin/with-contenv bash
 # shellcheck shell=bash
 
+chown root:root /etc/cron.d
+chmod 0755 /etc/cron.d
+
 exec cron -f

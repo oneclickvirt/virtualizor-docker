@@ -1,22 +1,30 @@
-version: "3"
 services:
   virtualizor:
-    image: sonoransoftware/virtualizor-docker
+    image: ${VIRTUALIZOR_IMAGE:-sonoransoftware/virtualizor-docker:latest}
     restart: unless-stopped
+    mem_limit: ${VIRTUALIZOR_MEM_LIMIT:-4g}
+    cpus: ${VIRTUALIZOR_CPUS:-2}
     environment:
-      - "PUID=1000"
-      - "PGID=1000"
-      - "PASSWORD=changeme"
-      - "EMAIL=your@email.here"
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      PASSWORD: ${PASSWORD:-changeme}
+      EMAIL: ${EMAIL:-your@email.here}
+      AUTO_RESTART_ON_UNHEALTHY: ${AUTO_RESTART_ON_UNHEALTHY:-true}
     volumes:
-      - ./data/emps:/usr/local/emps/:rw
-      - ./data/init:/etc/init.d/:rw
-      - ./data/virtualizor:/usr/local/virtualizor/:rw
-      - ./data/cron:/etc/cron.d/:rw
+      - ./data/emps:/usr/local/emps:rw
+      - ./data/init:/etc/init.d:rw
+      - ./data/virtualizor:/usr/local/virtualizor:rw
+      - ./data/cron:/etc/cron.d:rw
       - /etc/localtime:/etc/localtime:ro
     ports:
-        # "HOST PORT:CONTAINER PORT" Change the container host port if you want to change what ports you are using
-      - "4082:4082"
-      - "4083:4083"
-      - "4084:4084"
-      - "4085:4085"
+      - "${USER_HTTP_PORT:-4082}:4082"
+      - "${USER_HTTPS_PORT:-4083}:4083"
+      - "${ADMIN_HTTP_PORT:-4084}:4084"
+      - "${ADMIN_HTTPS_PORT:-4085}:4085"
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/virtualizor-healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 3m
+    stop_grace_period: 1m

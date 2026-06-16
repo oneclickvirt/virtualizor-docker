@@ -1,4 +1,8 @@
 #!/usr/bin/with-contenv bash
 # shellcheck shell=bash
 
-exec s6-setuidgid root service virtualizor stop
+if [ -x /etc/init.d/virtualizor ]; then
+    exec s6-setuidgid root /etc/init.d/virtualizor stop
+fi
+
+exit 0

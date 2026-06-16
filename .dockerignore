@@ -1,0 +1,6 @@
+.git
+.github
+.vscode
+config.sh
+data
+*.log

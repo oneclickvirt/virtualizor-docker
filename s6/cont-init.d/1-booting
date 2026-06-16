@@ -1,32 +1,88 @@
 #!/usr/bin/with-contenv bash
 # shellcheck shell=bash
 
-# Cron Directory Permission fix at boot time
-# Cron files in the cron.d directory will not run if group/other has write perms or root is not the owner.
-chmod 644 /etc/cron.d/*
-chown root:root /etc/cron.d/*
+set -euo pipefail
 
-if [ -d '/usr/local/emps' ]; then
-    if [ -z "$(ls -A /usr/local/emps)" ] || [ -z "$(ls -A /usr/local/virtualizor)" ]; then
-        echo root:"$PASSWORD" | chpasswd
-        adduser --disabled-login --gecos "" emps > /dev/null 2>&1
+log() {
+    printf '%s | %s\n' "$1" "$2"
+}
+
+fail() {
+    printf 'ERROR: %s | 错误：%s\n' "$1" "$2"
+    exit 1
+}
+
+is_uint() {
+    [[ "${1:-}" =~ ^[0-9]+$ ]]
+}
+
+is_email() {
+    [[ "${1:-}" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]
+}
+
+is_empty_dir() {
+    [ ! -d "$1" ] || [ -z "$(find "$1" -mindepth 1 -maxdepth 1 -print -quit)" ]
+}
+
+validate_env() {
+    is_uint "${PUID:-}" || fail "PUID must be a numeric user id." "PUID 必须是数字用户 ID。"
+    is_uint "${PGID:-}" || fail "PGID must be a numeric group id." "PGID 必须是数字用户组 ID。"
+    is_email "${EMAIL:-}" || fail "EMAIL must be a valid email-like value." "EMAIL 必须是基本合法的邮箱格式。"
+    [ -n "${PASSWORD:-}" ] || fail "PASSWORD must not be empty." "PASSWORD 不能为空。"
+    if [ "${PASSWORD}" = "changeme" ]; then
+        log "WARNING: PASSWORD is still set to the example value changeme." "警告：PASSWORD 仍为示例值 changeme。"
+    fi
+}
+
+fix_cron_permissions() {
+    mkdir -p /etc/cron.d
+    chown root:root /etc/cron.d || fail "Failed to chown /etc/cron.d." "修改 /etc/cron.d owner 失败。"
+    chmod 0755 /etc/cron.d || fail "Failed to chmod /etc/cron.d." "修改 /etc/cron.d 权限失败。"
+
+    if find /etc/cron.d -type f -print -quit | grep -q .; then
+        find /etc/cron.d -type f -exec chown root:root {} + || fail "Failed to chown cron files." "修改 cron 文件 owner 失败。"
+        find /etc/cron.d -type f -exec chmod 0644 {} + || fail "Failed to chmod cron files." "修改 cron 文件权限失败。"
+    fi
+}
+
+set_root_password() {
+    if ! printf 'root:%s\n' "$PASSWORD" | chpasswd; then
+        fail "Failed to update the root password with chpasswd." "chpasswd 更新 root 密码失败。"
+    fi
+}
+
+ensure_runtime_user() {
+    local name="$1"
+
+    if ! getent group "$name" >/dev/null 2>&1; then
+        groupadd -o -g "$PGID" "$name" || fail "Failed to create group ${name}." "创建用户组 ${name} 失败。"
+    fi
+    if ! id -u "$name" >/dev/null 2>&1; then
+        useradd -o -u "$PUID" -g "$name" -M -s /usr/sbin/nologin "$name" || fail "Failed to create user ${name}." "创建用户 ${name} 失败。"
+    fi
+}
+
+main() {
+    validate_env
+    fix_cron_permissions
+    mkdir -p /usr/local/emps /usr/local/virtualizor
+    set_root_password
+
+    if is_empty_dir /usr/local/emps || is_empty_dir /usr/local/virtualizor; then
+        log "Fresh or incomplete Virtualizor data detected; starting installation." "检测到全新或不完整的 Virtualizor 数据，开始安装。"
+        ensure_runtime_user emps
         bash /etc/scripts/install-virtualizor.sh
         echo ""
-        echo "Press CTRL+C to exit the installation."
-        echo "You can start the panel in the background with:"
-        echo " - docker start virtualizor" # To-Do : make this container aware
-        echo "If using this container with docker-compose please restart the container now with:"
-        echo " - docker-compose restart"
+        log "Press CTRL+C to exit the foreground installation log." "按 CTRL+C 可退出前台安装日志。"
+        log "Start the panel in the background with: docker start virtualizor" "可使用 docker start virtualizor 在后台启动面板。"
+        log "When using docker compose, restart with: docker compose restart" "使用 docker compose 时，可执行 docker compose restart 重启。"
         echo ""
     else
-        echo root:"$PASSWORD" | chpasswd
-        if ! id -u mysql &>/dev/null; then
-            adduser --disabled-login --gecos "" mysql > /dev/null 2>&1
-        fi
-        if ! id -u emps &>/dev/null; then
-            adduser --disabled-login --gecos "" emps > /dev/null 2>&1
-        fi
-        /etc/init.d/virtualizor start 2>&1
-        /etc/init.d/cron start 2>&1
+        log "Existing Virtualizor data detected; starting services." "检测到已有 Virtualizor 数据，启动服务。"
+        ensure_runtime_user mysql
+        ensure_runtime_user emps
+        /etc/init.d/virtualizor start || fail "Failed to start Virtualizor." "Virtualizor 启动失败。"
     fi
-fi
+}
+
+main "$@"

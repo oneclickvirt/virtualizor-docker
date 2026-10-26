@@ -1,0 +1,22 @@
+{
+  "repository": "oneclickvirt/virtualizor-docker",
+  "branch": "master",
+  "skill_name": "oneclickvirt-virtualizor-docker",
+  "purpose": "Deploy the Virtualizor Docker setup and diagnose its existing Compose services.",
+  "notes": [
+    "Inspect the repository's actual Compose/service definitions and installer options before choosing ports or volumes. Protect panel state and licensing configuration."
+  ],
+  "guide": "https://www.spiritlhl.net/guide/agent_integrations.html",
+  "releases": false,
+  "mcp": false,
+  "source_files": [
+    "example-config.sh",
+    "s6/scripts/healthcheck.sh",
+    "s6/scripts/install-virtualizor.sh",
+    "virtualizor.sh"
+  ],
+  "purpose_zh": "部署 Virtualizor Docker 环境并排查已有 Compose 服务。",
+  "notes_zh": [
+    "先检查实际 Compose 服务定义和安装器选项，再选择端口及数据卷。保留面板状态和授权配置。"
+  ]
+}

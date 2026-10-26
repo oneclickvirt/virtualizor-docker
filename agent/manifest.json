@@ -1,0 +1,10 @@
+{
+  "repository": "oneclickvirt/virtualizor-docker",
+  "skill_name": "oneclickvirt-virtualizor-docker",
+  "mcp": false,
+  "files": {
+    "agent/profile.json": "b89f558cc90bb0c43e91654783096297d4834622f2f2fd9108bad60938e45267",
+    "skills/oneclickvirt-virtualizor-docker/SKILL.md": "02b2db05476b13eac71fd371cb17b935194f353775265a1f7269a7bd99b2f4f7",
+    "skills/oneclickvirt-virtualizor-docker/SKILL_ZH.md": "acc13ef9264cfd156a0e7d56c7e6034a597a7ece4c656f2a114e26772bf45119"
+  }
+}
